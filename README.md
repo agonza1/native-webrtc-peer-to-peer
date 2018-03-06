@@ -9,6 +9,16 @@ It uses [adapter.js](https://github.com/webrtc/adapter) for WebRTC and [socket.i
 
 * [NodeJS](https://nodejs.org)
 
+### Starting and debugging
+
+For debugging all logs:
+
+```DEBUG=* node index.js```
+
+For just running without debugging:
+
+```node index.js```
+
 ### Credit where credit is due:
 
 Initial code from https://github.com/googlecodelabs/webrtc-web
