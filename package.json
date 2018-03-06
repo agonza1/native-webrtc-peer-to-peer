@@ -1,7 +1,7 @@
 {
-  "name": "webrtc-app",
+  "name": "native-webrtc-app",
   "version": "0.0.1",
-  "description": "WebRTC app",
+  "description": "WebRTC App",
   "dependencies": {
     "async": ">= 1.5.2",
     "colors": ">= 1.1.2",
