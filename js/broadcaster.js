@@ -20,6 +20,8 @@ var sdpConstraints = {
   offerToReceiveVideo: true
 };
 
+// Requested by the broadcaster which will pass current local
+// http://localhost:8000/streamingtest.html remotevideo source
 /////////////////////////////////////////////
 
 var room = 'foo';
@@ -93,45 +95,244 @@ socket.on('message', function(message) {
 var localVideo = document.querySelector('#localVideo');
 var remoteVideo = document.querySelector('#remoteVideo');
 
-navigator.mediaDevices.getUserMedia({
-  audio: false,
-  video: true
-})
-.then(gotStream)
-.catch(function(e) {
-  alert('getUserMedia() error: ' + e.name);
-});
+// navigator.mediaDevices.getUserMedia({
+//   audio: false,
+//   video: true
+// })
+// .then(gotStream)
+// .catch(function(e) {
+//   alert('getUserMedia() error: ' + e.name);
+// });
+//
+// function gotStream(stream) {
+//   console.log('Adding local stream.');
+//   localStream = stream;
+//   console.log('LOCAL STREAM');
+//   console.log(localStream);
+//   localVideo.srcObject = stream;
+//   sendMessage('got user media');
+//   if (isInitiator) {
+//     maybeStart();
+//   }
+// }
 
-function gotStream(stream) {
-  console.log('Adding local stream.');
-  localStream = stream;
-  localVideo.srcObject = stream;
-  sendMessage('got user media');
-  if (isInitiator) {
-    maybeStart();
-  }
-}
-
-var constraints = {
-  video: true
-};
-
-console.log('Getting user media with constraints', constraints);
+// var constraints = {
+//   video: true
+// };
+//
+// console.log('Getting user media with constraints', constraints);
 
 if (location.hostname !== 'localhost') {
   requestTurn('https://global.xirsys.net/_turn/MyFirstApp/');
 }
 
+//////////
+
+var stream;
+var startTime;
+var pc1,pc2;
+var offerOptions = {
+  offerToReceiveAudio: 1,
+  offerToReceiveVideo: 1
+};
+
+// remoteVideo.onloadedmetadata = function() {
+//   console.log('Remote video videoWidth: ' + this.videoWidth +
+//   'px,  videoHeight: ' + this.videoHeight + 'px');
+// };
+//
+// remoteVideo.onresize = function() {
+//   console.log('Remote video size changed to ' +
+//   remoteVideo.videoWidth + 'x' + remoteVideo.videoHeight);
+//   // We'll use the first onresize callback as an indication that
+//   // video has started playing out.
+//   if (startTime) {
+//     var elapsedTime = window.performance.now() - startTime;
+//     console.log('Setup time: ' + elapsedTime.toFixed(3) + 'ms');
+//     startTime = null;
+//   }
+// };
+
+function call() {
+  console.log('Starting call');
+  startTime = window.performance.now();
+  var videoTracks = stream.getVideoTracks();
+  var audioTracks = stream.getAudioTracks();
+  if (videoTracks.length > 0) {
+    console.log('Using video device: ' + videoTracks[0].label);
+  }
+  if (audioTracks.length > 0) {
+    console.log('Using audio device: ' + audioTracks[0].label);
+  }
+  var servers = null;
+  pc1 = new RTCPeerConnection(servers);
+  console.log('Created local peer connection object pc1');
+  pc1.onicecandidate = function(e) {
+    onIceCandidate(pc1, e);
+  };
+  pc2 = new RTCPeerConnection(servers);
+  console.log('Created remote peer connection object pc2');
+  pc2.onicecandidate = function(e) {
+    onIceCandidate(pc2, e);
+  };
+  pc1.oniceconnectionstatechange = function(e) {
+    onIceStateChange(pc1, e);
+  };
+  pc2.oniceconnectionstatechange = function(e) {
+    onIceStateChange(pc2, e);
+  };
+  pc2.ontrack = gotRemoteStream;
+
+  stream.getTracks().forEach(
+  function(track) {
+    pc1.addTrack(
+    track,
+    stream
+    );
+  }
+  );
+  console.log('Added local stream to pc1');
+
+  console.log('pc1 createOffer start');
+  console.log('Sending offer to peer');
+  pc1.createOffer(onCreateOfferSuccess, onCreateSessionDescriptionError,
+  offerOptions);
+  pc.createOffer(setLocalAndSendMessage, onCreateSessionDescriptionError,
+  offerOptions);
+}
+
+function onCreateSessionDescriptionError(error) {
+  console.log('Failed to create session description: ' + error.toString());
+}
+
+function onCreateOfferSuccess(desc) {
+  console.log('Offer from pc1\n' + desc.sdp);
+  console.log('pc1 setLocalDescription start');
+  pc1.setLocalDescription(desc, function() {
+    onSetLocalSuccess(pc1);
+  }, onSetSessionDescriptionError);
+  console.log('pc2 setRemoteDescription start');
+  pc2.setRemoteDescription(desc, function() {
+    onSetRemoteSuccess(pc2);
+  }, onSetSessionDescriptionError);
+  console.log('pc2 createAnswer start');
+  // Since the 'remote' side has no media stream we need
+  // to pass in the right constraints in order for it to
+  // accept the incoming offer of audio and video.
+  pc2.createAnswer(onCreateAnswerSuccess, onCreateSessionDescriptionError);
+}
+
+function onSetLocalSuccess(pc) {
+  console.log(getName(pc) + ' setLocalDescription complete');
+}
+
+function onSetRemoteSuccess(pc) {
+  console.log(getName(pc) + ' setRemoteDescription complete');
+}
+
+function onSetSessionDescriptionError(error) {
+  console.log('Failed to set session description: ' + error.toString());
+}
+
+function gotRemoteStream(event) {
+  if (remoteVideo.srcObject !== event.streams[0]) {
+    remoteVideo.srcObject = event.streams[0];
+    console.log('pc2 received remote stream', event);
+  }
+}
+
+function onCreateAnswerSuccess(desc) {
+  console.log('Answer from pc2:\n' + desc.sdp);
+  console.log('pc2 setLocalDescription start');
+  pc2.setLocalDescription(desc, function() {
+    onSetLocalSuccess(pc2);
+  }, onSetSessionDescriptionError);
+  console.log('pc1 setRemoteDescription start');
+  pc1.setRemoteDescription(desc, function() {
+    onSetRemoteSuccess(pc1);
+  }, onSetSessionDescriptionError);
+}
+
+function onIceCandidate(pc, event) {
+  getOtherPc(pc).addIceCandidate(event.candidate)
+  .then(
+  function() {
+    onAddIceCandidateSuccess(pc);
+  },
+  function(err) {
+    onAddIceCandidateError(pc, err);
+  }
+  );
+  console.log(getName(pc) + ' ICE candidate: \n' + (event.candidate ?
+  event.candidate.candidate : '(null)'));
+}
+
+function onAddIceCandidateSuccess(pc) {
+  console.log(getName(pc) + ' addIceCandidate success');
+}
+
+function onAddIceCandidateError(pc, error) {
+  console.log(getName(pc) + ' failed to add ICE Candidate: ' + error.toString());
+}
+
+function onIceStateChange(pc, event) {
+  if (pc) {
+    console.log(getName(pc) + ' ICE state: ' + pc.iceConnectionState);
+    console.log('ICE state change event: ', event);
+  }
+}
+
+function getName(pc) {
+  return (pc === pc1) ? 'pc1' : 'pc2';
+}
+
+function getOtherPc(pc) {
+  return (pc === pc1) ? pc2 : pc1;
+}
+
+/////////
 function maybeStart() {
+
+  function maybeCreateStream() {
+    if (stream) {
+      return;
+    }
+    if (localVideo.captureStream) {
+      stream = localVideo.captureStream();
+      console.log('Captured stream from leftVideo with captureStream',
+      stream);
+      // call();
+    } else if (localVideo.mozCaptureStream) {
+      stream = localVideo.mozCaptureStream();
+      console.log('Captured stream from leftVideo with mozCaptureStream()',
+      stream);
+      // call();
+    } else {
+      console.log('captureStream() not supported');
+    }
+  }
+
+// Video tag capture must be set up after video tracks are enumerated.
+  localVideo.oncanplay = maybeCreateStream;
+  if (localVideo.readyState >= 3) {  // HAVE_FUTURE_DATA
+    // Video is already ready to play, call maybeCreateStream in case oncanplay
+    // fired before we registered the event handler.
+    maybeCreateStream();
+  }
+
+  localVideo.play();
+
+
   console.log('>>>>>>> maybeStart() ', isStarted, localStream, isChannelReady);
-  if (!isStarted && typeof localStream !== 'undefined' && isChannelReady) {
+  if (!isStarted && ( typeof localStream !== 'undefined' || typeof stream !== 'undefined') && isChannelReady) {
     console.log('>>>>>> creating peer connection');
     createPeerConnection();
-    pc.addStream(localStream);
+    if (localStream) pc.addStream(localStream);
+    else pc.addStream(stream);
     isStarted = true;
     console.log('isInitiator', isInitiator);
     if (isInitiator) {
-      doCall();
+      call();
     }
   }
 }
@@ -188,15 +389,13 @@ function doAnswer() {
 }
 
 function setLocalAndSendMessage(sessionDescription) {
-  // Set Opus as the preferred codec in SDP if Opus is present.
-  //  sessionDescription.sdp = preferOpus(sessionDescription.sdp);
   pc.setLocalDescription(sessionDescription);
   console.log('setLocalAndSendMessage sending message', sessionDescription);
   sendMessage(sessionDescription);
 }
 
 function onCreateSessionDescriptionError(error) {
-  trace('Failed to create session description: ' + error.toString());
+  console.log('Failed to create session description: ' + error.toString());
 }
 
 function requestTurn(turnURL) {
@@ -256,40 +455,6 @@ function stop() {
 }
 
 ///////////////////////////////////////////
-
-// Set Opus as the default audio codec if it's present.
-function preferOpus(sdp) {
-  var sdpLines = sdp.split('\r\n');
-  var mLineIndex;
-  // Search for m line.
-  for (var i = 0; i < sdpLines.length; i++) {
-    if (sdpLines[i].search('m=audio') !== -1) {
-      mLineIndex = i;
-      break;
-    }
-  }
-  if (mLineIndex === null) {
-    return sdp;
-  }
-
-  // If Opus is available, set it as the default in m line.
-  for (i = 0; i < sdpLines.length; i++) {
-    if (sdpLines[i].search('opus/48000') !== -1) {
-      var opusPayload = extractSdp(sdpLines[i], /:(\d+) opus\/48000/i);
-      if (opusPayload) {
-        sdpLines[mLineIndex] = setDefaultCodec(sdpLines[mLineIndex],
-        opusPayload);
-      }
-      break;
-    }
-  }
-
-  // Remove CN in m line and sdp.
-  sdpLines = removeCN(sdpLines, mLineIndex);
-
-  sdp = sdpLines.join('\r\n');
-  return sdp;
-}
 
 function extractSdp(sdpLine, pattern) {
   var result = sdpLine.match(pattern);

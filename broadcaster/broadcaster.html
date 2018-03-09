@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Realtime communication with WebRTC (broadcaster)</title>
+
+    <link rel="stylesheet" href="/css/main.css" />
+
+</head>
+
+<body>
+
+<h1>Realtime communication with WebRTC</h1>
+
+<div id="videos">
+    <!--<video id="localVideo" autoplay muted></video>-->
+    <video id="localVideo" width="500"> <source src="../chrome.mp4" type="video/mp4"></video>
+    <video id="remoteVideo" autoplay></video>
+</div>
+
+<div id="status"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script src="/js/broadcaster.js"></script>
+
+</body>
+
+</html>
