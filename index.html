@@ -13,11 +13,15 @@
 
 <h1>Realtime communication with WebRTC</h1>
 
+<div id="show-background">Hide background
+    <input id="show-background-toggle" type="checkbox" checked>
+</div>
 <div id="videos">
-    <video id="localVideo" autoplay muted></video>
+    <canvas id="canvas" width=320px height=240px></canvas>
+    <video id="localVideo" autoplay muted style="visibility: hidden; position: absolute;"></video>
     <video id="remoteVideo" autoplay></video>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.14.2/dist/tf.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script src="js/main.js"></script>

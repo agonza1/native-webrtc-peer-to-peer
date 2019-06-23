@@ -92,24 +92,78 @@ socket.on('message', function(message) {
 
 var localVideo = document.querySelector('#localVideo');
 var remoteVideo = document.querySelector('#remoteVideo');
+const canvas = document.getElementById('canvas');
+
+const MODEL_URL =
+    'js/lib/tensorflow/deeplabv3_mnv2_pascal_train_aug_web_model/tensorflowjs_model.pb';
+const WEIGHTS_URL =
+    'js/lib/tensorflow/deeplabv3_mnv2_pascal_train_aug_web_model/weights_manifest.json';
+// Model's input and output have width and height of 513.
+const TENSOR_EDGE = 513;
+// Const model = return new Promise(tf.loadFrozenModel(MODEL_URL, WEIGHTS_URL));
+const model = new Promise(function(resolve) {
+  resolve(tf.loadFrozenModel(MODEL_URL, WEIGHTS_URL));
+});
 
 navigator.mediaDevices.getUserMedia({
   audio: false,
-  video: true
+  video: { frameRate: 5, width: 640, height: 480 }
 })
 .then(gotStream)
+.then(function (e) {
+  const stream = canvas.captureStream();
+  console.log('Got stream from canvas');
+  localStream = stream;
+  sendMessage('got user media');
+  if (isInitiator) {
+    maybeStart();
+  }
+})
 .catch(function(e) {
   alert('getUserMedia() error: ' + e.name);
 });
 
 function gotStream(stream) {
-  console.log('Adding local stream.');
-  localStream = stream;
-  localVideo.srcObject = stream;
-  sendMessage('got user media');
-  if (isInitiator) {
-    maybeStart();
-  }
+  return model.then(function(model) {
+    // const video = document.createElement('video');
+    localVideo.autoplay = true;
+    localVideo.width = localVideo.height = TENSOR_EDGE;
+    const ctx = canvas.getContext('2d');
+    const videoCopy = ctx.canvas.cloneNode(false).getContext('2d');
+    const maskContext = document.createElement('canvas').getContext('2d');
+    maskContext.canvas.width = maskContext.canvas.height = TENSOR_EDGE;
+    const img = maskContext.createImageData(TENSOR_EDGE, TENSOR_EDGE);
+    let imgd = img.data;
+    new Uint32Array(imgd.buffer).fill(0x00ffffff);
+
+    const render = () => {
+      // VideoCopy is the canvas name where we are placing the video
+      videoCopy.drawImage(localVideo, 0, 0, ctx.canvas.width, ctx.canvas.height);
+      const out = tf.tidy(() => {
+        return model.execute({ ImageTensor: tf.fromPixels(localVideo).expandDims(0) });
+    });
+      // Data will be multidimensional array of numbers that has the detected object shape and data type.
+      const data = out.dataSync();
+      // Then we will for loop all the pixels and make the mask transparent or opaque based on if it is a segmented object or not(background)
+      for (let i = 0; i < data.length; i++) {
+        imgd[i * 4 + 3] = data[i] == 15 ? 0 : 255;
+      }
+      ctx.drawImage(videoCopy.canvas, 0, 0);
+      maskContext.putImageData(img, 0, 0);
+      // Cover background, put over video a mask: maskContext
+      if (document.getElementById('show-background-toggle').checked)
+        ctx.drawImage(maskContext.canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
+
+      window.requestAnimationFrame(render);
+    };
+    // Once video is ready to play, render
+    localVideo.oncanplay = render;
+    // Pass stream to video src
+    localVideo.srcObject = stream;
+    return new Promise(function(resolve) {
+      resolve();
+    });
+  });
 }
 
 var constraints = {
