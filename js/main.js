@@ -4,6 +4,7 @@ var isChannelReady = false;
 var isInitiator = false;
 var isStarted = false;
 var localStream;
+var localStream_2;
 var pc;
 var remoteStream;
 var turnReady;
@@ -90,8 +91,14 @@ socket.on('message', function(message) {
 
 ////////////////////////////////////////////////////
 
-var localVideo = document.querySelector('#localVideo');
-var remoteVideo = document.querySelector('#remoteVideo');
+let localVideo = document.querySelector('#localVideo');
+let remoteVideo = document.querySelector('#remoteVideo');
+let startAndStop = document.getElementById('startAndStop');
+let streaming = false;
+let video = document.getElementById('localVideo');
+let cap, frame, fgmask, fgbg;
+let canvasOutput = document.getElementById('canvasOutput');
+let canvasContext = canvasOutput.getContext('2d');
 
 navigator.mediaDevices.getUserMedia({
   audio: false,
@@ -112,6 +119,63 @@ function gotStream(stream) {
   }
 }
 
+// videoInput.src = 'box.mp4';
+const FPS = 30;
+function processVideo() {
+  try {
+    if (!streaming) {
+      // clean and stop.
+      frame.delete(); fgmask.delete(); fgbg.delete();
+      return;
+    }
+    let begin = Date.now();
+    // start processing.
+    cap.read(frame);
+    fgbg.apply(frame, fgmask);
+    cv.imshow('canvasOutput', fgmask);
+    // schedule the next one.
+    let delay = 1000/FPS - (Date.now() - begin);
+    setTimeout(processVideo, delay);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+startAndStop.addEventListener('click', () => {
+  console.log('click!');
+  cap = new cv.VideoCapture(video);
+  frame = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+  fgmask = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+  fgbg = new cv.BackgroundSubtractorMOG2(200, 16, true);
+  if (!streaming) {
+    // schedule the first one.
+    setTimeout(processVideo, 0);
+    const stream = canvasOutput.captureStream();
+    console.log('Got stream from canvas');
+    localStream_2 = localStream;
+    localStream = stream;
+    onVideoStarted();
+  } else {
+    // localVideo.pause();
+    // localVideo.currentTime = 0;
+    console.log('Got stream from raw video');
+    localStream = localStream_2;
+    onVideoStopped();
+  }
+});
+
+function onVideoStarted() {
+  streaming = true;
+  startAndStop.innerText = 'Stop';
+  localVideo.height = localVideo.width * (localVideo.videoHeight / localVideo.videoWidth);
+}
+
+function onVideoStopped() {
+  streaming = false;
+  canvasContext.clearRect(0, 0, canvasOutput.width, canvasOutput.height);
+  startAndStop.innerText = 'Start';
+}
+
 var constraints = {
   video: true
 };
@@ -119,9 +183,9 @@ var constraints = {
 console.log('Getting user media with constraints', constraints);
 
 if (location.hostname !== 'localhost') {
-  requestTurn(
-  'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-  );
+  // requestTurn(
+  // 'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+  // );
 }
 
 function maybeStart() {

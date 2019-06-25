@@ -12,13 +12,14 @@
 <body>
 
 <h1>Realtime communication with WebRTC</h1>
-
+<div class="control"><button id="startAndStop">Start</button></div>
 <div id="videos">
-    <video id="localVideo" autoplay muted></video>
-    <video id="remoteVideo" autoplay></video>
+    <video id="localVideo" width="320" height="240" autoplay muted></video>
+    <video id="remoteVideo" width="320" height="240" autoplay></video>
+    <canvas id="canvasOutput" width="320" height="240"></canvas>
 </div>
-
-<script src="/socket.io/socket.io.js"></script>
+<script src="https://docs.opencv.org/master/opencv.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script src="js/main.js"></script>
 
