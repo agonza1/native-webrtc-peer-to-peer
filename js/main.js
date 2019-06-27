@@ -96,7 +96,7 @@ let remoteVideo = document.querySelector('#remoteVideo');
 let startAndStop = document.getElementById('startAndStop');
 let streaming = false;
 let video = document.getElementById('localVideo');
-let cap, frame, fgmask, fgbg;
+let cap, src, dst, gray, faces, classifier;
 let canvasOutput = document.getElementById('canvasOutput');
 let canvasContext = canvasOutput.getContext('2d');
 
@@ -117,36 +117,57 @@ function gotStream(stream) {
   if (isInitiator) {
     maybeStart();
   }
+  startAndStop.disabled = false
 }
 
-// videoInput.src = 'box.mp4';
+createFileFromUrl('haarcascade_frontalface_default.xml', 'haarcascade_frontalface_default.xml', function () {
+  console.log('load classifier file!');
+});
+
 const FPS = 30;
 function processVideo() {
-  try {
-    if (!streaming) {
-      // clean and stop.
-      frame.delete(); fgmask.delete(); fgbg.delete();
-      return;
+    try {
+        if (!streaming) {
+            // clean and stop.
+            src.delete();
+            dst.delete();
+            gray.delete();
+            faces.delete();
+            classifier.delete();
+            return;
+        }
+        let begin = Date.now();
+        // start processing.
+        cap.read(src);
+        src.copyTo(dst);
+        cv.cvtColor(dst, gray, cv.COLOR_RGBA2GRAY, 0);
+        // detect faces.
+        classifier.detectMultiScale(gray, faces, 1.1, 3, 0);
+        // draw faces.
+        for (let i = 0; i < faces.size(); ++i) {
+            let face = faces.get(i);
+            let point1 = new cv.Point(face.x, face.y);
+            let point2 = new cv.Point(face.x + face.width, face.y + face.height);
+            cv.rectangle(dst, point1, point2, [255, 0, 0, 255]);
+        }
+        cv.imshow('canvasOutput', dst);
+        // schedule the next one.
+        let delay = 1000/FPS - (Date.now() - begin);
+        setTimeout(processVideo, delay);
+    } catch (err) {
+        console.log(err);
     }
-    let begin = Date.now();
-    // start processing.
-    cap.read(frame);
-    fgbg.apply(frame, fgmask);
-    cv.imshow('canvasOutput', fgmask);
-    // schedule the next one.
-    let delay = 1000/FPS - (Date.now() - begin);
-    setTimeout(processVideo, delay);
-  } catch (err) {
-    console.log(err);
-  }
 };
 
 startAndStop.addEventListener('click', () => {
   console.log('click!');
+  src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+  dst = new cv.Mat(video.height, video.width, cv.CV_8UC1);
+  gray = new cv.Mat();
   cap = new cv.VideoCapture(video);
-  frame = new cv.Mat(video.height, video.width, cv.CV_8UC4);
-  fgmask = new cv.Mat(video.height, video.width, cv.CV_8UC1);
-  fgbg = new cv.BackgroundSubtractorMOG2(200, 16, true);
+  faces = new cv.RectVector();
+  classifier = new cv.CascadeClassifier();
+  classifier.load('haarcascade_frontalface_default.xml');
   if (!streaming) {
     // schedule the first one.
     setTimeout(processVideo, 0);
@@ -398,4 +419,24 @@ function removeCN(sdpLines, mLineIndex) {
 
   sdpLines[mLineIndex] = mLineElements.join(' ');
   return sdpLines;
+}
+
+function createFileFromUrl(path, url, callback) {
+  let request = new XMLHttpRequest();
+  request.open('GET', url, true);
+  request.responseType = 'arraybuffer';
+  request.onload = function(ev) {
+    request = this;
+    if (request.readyState === 4) {
+      if (request.status === 200) {
+        let data = new Uint8Array(request.response);
+        console.log('Request success')
+        cv.FS_createDataFile('/', path, data, true, false, false);
+        callback();
+      } else {
+        console.error('Failed to load ' + url + ' status: ' + request.status);
+      }
+    }
+  };
+  request.send();
 }
