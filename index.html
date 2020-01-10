@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
-
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
 <head>
 
     <title>Realtime communication with WebRTC</title>
@@ -10,18 +11,31 @@
 </head>
 
 <body>
-
-<h1>Realtime communication with WebRTC</h1>
-
+<header>
+    <h1>Realtime communication with WebRTC</h1>
+</header>
 <div id="videos">
     <video id="localVideo" autoplay muted></video>
     <video id="remoteVideo" autoplay></video>
 </div>
-
+<div class="mt-2 mb-2">
+    <button id="getInsightsBtn" type="button" class="btn btn-primary">
+        <a href="#" style="color: white" class="button">
+            Received video insights →
+        </a>
+    </button>
+</div>
+<div class="container">
+    <canvas style="width: 500px;"></canvas>
+    <img id="my-screenshot"/>
+</div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 <script src="js/main.js"></script>
-
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
+<script src="js/vision-insights-demo.js"></script>
+<script src="js/capture-video-frame.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@9"></script>
 </body>
 
 </html>
