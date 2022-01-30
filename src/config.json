@@ -1,0 +1,8 @@
+{
+  "ws": {
+    "http_port": 80,
+    "https_port": 8443,
+    "cert": "./cert/server.crt",
+    "key": "./cert/key.pem"
+  }
+}

@@ -27,6 +27,7 @@ var room = 'foo';
 // room = prompt('Enter room name:');
 
 var socket = io.connect();
+// const socket = io("ws://localhost:80");
 
 if (room !== '') {
   socket.emit('create or join', room);
