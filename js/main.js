@@ -26,7 +26,7 @@ var room = 'foo';
 // Could prompt for room name:
 // room = prompt('Enter room name:');
 
-var socket = io.connect();
+var socket = io();
 // const socket = io("ws://localhost:80");
 
 if (room !== '') {

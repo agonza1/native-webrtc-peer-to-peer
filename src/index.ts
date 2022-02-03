@@ -2,7 +2,7 @@
 
 import { NetworkInterfaceInfo, networkInterfaces } from 'os';
 import { series } from 'async';
-import { Server, ServerOptions } from 'socket.io';
+import { Server } from 'socket.io';
 import express from 'express';
 import express_server from "./config.json";
 import { yellow, red, cyan } from 'colors';
@@ -21,7 +21,7 @@ const d = {
 };
 
 // Socket.io connection/message handler
-const socket = (http: Partial<ServerOptions> | undefined) => {
+const socket = (http: any) => {
   // console.log(http);
   const io = new Server(http);
   io.on('connection', socket => {
@@ -34,10 +34,10 @@ const socket = (http: Partial<ServerOptions> | undefined) => {
       socket.emit('log', array);
     }
 
-    socket.on('message', (message) => {
+    socket.on('message', (message: string) => {
       console.log(message);
       log('Client said: ', message);
-      // for a real app, would be room-only (not broadcast)
+      // To support multiple rooms in app, would be room-only (not broadcast)
       socket.broadcast.emit('message', message);
     });
 
