@@ -15,4 +15,4 @@ COPY . .
 
 EXPOSE 80
 EXPOSE 8443
-CMD [ "node", "index.js" ]
+CMD [ "npm", "run", "dev" ]
