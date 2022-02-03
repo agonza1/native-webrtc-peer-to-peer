@@ -25,20 +25,36 @@ const socket = (http: any) => {
   // console.log(http);
   const io = new Server(http);
   io.on('connection', socket => {
+<<<<<<< HEAD
+=======
+    console.log('connection!')
+>>>>>>> master
     // convenience function to log server messages on the client
     const log = (...arg: string[]) => {
       var array = ['Message from server:'];
       array.push.apply(array, arg);
+<<<<<<< HEAD
+=======
+      console.log(array);
+>>>>>>> master
       socket.emit('log', array);
     }
 
     socket.on('message', (message: string) => {
+<<<<<<< HEAD
+=======
+      console.log(message);
+>>>>>>> master
       log('Client said: ', message);
       // To support multiple rooms in app, would be room-only (not broadcast)
       socket.broadcast.emit('message', message);
     });
 
+<<<<<<< HEAD
     socket.on('create or join', (room: string) => {
+=======
+    socket.on('create or join', (room) => {
+>>>>>>> master
       log('Received request to create or join room ' + room);
 
       const clients = io.sockets.adapter.rooms.get(room);
