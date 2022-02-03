@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+      "module": "commonjs",
+      "target": "esnext",
+      "lib": ["esnext"],
+      "allowJs": true,
+      "rootDir": "./src",
+      "outDir": "./dist",
+      "moduleResolution": "Node",
+      "strict": true,
+      "typeRoots": ["node_modules/@types"],
+      "resolveJsonModule": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true
+    },
+    "include": ["src/index.ts", "src/config.json"],
+    "exclude": ["./dist", "./node_modules"]
+  }
