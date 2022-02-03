@@ -24,15 +24,17 @@ Run the image you previously built:
 docker run -p 8080:80 -d <your username>/webrtc-app
 ```
 
+Using this command the app will be accessible at localhost:8080
+
 ### Starting and debugging (without docker)
 
-For debugging all logs:
+Build the backend:
 
-```DEBUG=* node index.js```
+```npm run build```
 
-For just running without debugging:
+For just running:
 
-```node index.js```
+```npm run dev```
 
 ### Credit where credit is due:
 
