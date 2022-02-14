@@ -21,10 +21,10 @@ docker build . -t <your username>/webrtc-app
 Run the image you previously built:
 
 ```
-docker run -p 8080:80 -d <your username>/webrtc-app
+docker run -p 8080:80 -e DEBUG=* -d <your username>/webrtc-app
 ```
 
-Using this command the app will be accessible at localhost:8080
+Using this command the app will be accessible at [localhost:8080](http://localhost:8080) and running in [DEBUG mode](https://www.npmjs.com/package/debug)
 
 ### Starting and debugging (without docker)
 
